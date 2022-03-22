@@ -1,4 +1,5 @@
 \documentclass[9pt, a4paper]{article}
+\usepackage[margin=3.5cm]{geometry}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage[parfill]{parskip}
@@ -30,37 +31,40 @@
 
 \maketitle
 
-\section*{Abstract}
-The internet is full of malicious and spam traffic. Some websites
-try to mitigate this through mechanisms like CAPTCHAs, requiring
-users to solve puzzles before accessing their site. These websites
-use fingerprinting in order to keep track of vetted users. This avoids
-a constant need to re-solve puzzles to access websites. On the other hand,
-this harms user privacy, through excessive tracking. If users try
-and circumvent this tracking through privacy tools like
-Tor \cite{tor_2004}, then they're faced with a large amount of puzzles
-to solve once again.
+\section{Introduction}
 
-This paper \cite{davidson_privacy_2018} addresses the issue by designing
-a protocol in which a challenge server can issue tokens to users,
-which can later be redeemed to access a site. By issuing multiple
-tokens for each challenge solved, the effort of legitimate users
-is reduced. To preserve their privacy, the protocol is designed
-so that issued tokens can't be linked with redeemed tokens, so
-that the activity of users can't be easily tracked.
+To mitigate spam, websites will often make users solve puzzles like CAPTCHAs,
+which are difficult for bots to solve, or rate-limit access in other ways.
+To avoid constantly hassling users with these puzzles, websites will
+also use fingerprinting and other forms of tracking to recognize users.
+To avoid tracking, some users make use of tools like Tor \cite{tor_2004},
+anonymizing their communication with the website. Unfortunately,
+this means that users will have to solve a lot of puzzles, since the
+server doesn't recognize them.
 
-\section{Background}
+This paper \cite{davidson_privacy_2018} addresses this issue through
+the use of \emph{tokens}, which can be redeemed in order
+to access the website.
+The server can issue multiple tokens for each puzzle,
+and thus the user has to solve fewer puzzles. To prevent tracking users,
+the tokens are made to be \emph{unlinkable}: the tokens
+are independent from each-other, and the user redeeming
+a token can't be linked with the user who was issued that token.
+Naturally, we also want to make sure that a token can only be used once,
+and that users can't create new tokens without the help of the server.
+
+
 \section{Implementation}
 
 \subsection{Core Idea}
 
-The core idea of the scheme is that if you have a PRF
+The core idea of the scheme is that if you have a Pseudo-Random Function (PRF)
 
 $$
 F : K \times X \to Y
 $$
 
-Then evaluating $F_k(x)$ should be difficult without knowing $k$. Thus,
+Then evaluating $F_k(x)$ should be difficult without knowing the key $k$. Thus,
 we can issue a token by choosing a random $t$, calculating $F_k(t)$,
 and then sending that to the user. The user will then present
 $(x, y)$ to us later, and we check that $F_k(x) = y$. It should be difficult
