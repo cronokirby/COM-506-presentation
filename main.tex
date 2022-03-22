@@ -145,7 +145,7 @@ The paper cites a protocol for this ZK proof by Chaum and Pedersen
 to arbitrary one-way group homomorphisms, in \cite{maurer_2009}.
 In this case, the homomorphism is $\varphi(x) := (x \cdot G, x \cdot P)$,
 and we prove that $\varphi(k) = (Y, Q)$ in zero-knowledge. This is
-the same type of proof as in the ubiquitous Schnorr signature.
+the same type of proof as in the ubiquitous Schnorr signature \cite{schnorr_1990}.
 
 \subsubsection{Batching}
 
@@ -154,7 +154,7 @@ which would allow us to reduce the number of puzzles users have to solve.
 We can do this straightforwardly by having the user generate
 multiple seeds $t_i$, send multiple points $P_i$, and receive multiple points
 $Q_i$ in return. The zero-knowledge proof that the same $k$ was used
-is still necessary, and can also be repeated multiple times. This
+is still necessary, and can also be repeated multiple times. These
 proofs can also be combined into a more efficient \text{batch proof},
 as described in \cite{henry_13}, and explained in the paper. This reduces
 communication cost.
@@ -168,18 +168,83 @@ a shared key $K := H_2(t, W)$ with the issuer. The issuer can derive this
 key from just $t$, since $W$ satisfies $W = k \cdot H_1(t)$, and the
 issuer knows $k$.
 
-We can then redeem our token $(t, W)$ to access some content $R$
-by sending $(t, \text{MAC}_K(R))$ to the issuer. They then recalculate
+The user can then redeem their token $(t, W)$ to access some content $R$
+by sending $(t, \text{MAC}_K(R))$ to the issuer, who can then recalculate
 $K$ from $t$, and check that $\text{MAC}_K(R')$ is the same, using
 the content $R'$ they're responding with. Binding the
 request to the content $R$ in a way the server can recompute
 avoids potential issues with someone intercepting a token
 redemption protocol, and using that to access content.
+The issuer must also keep a list of tokens $t$ it has seen, in order
+to prevent users from reusing tokens.
 
 \section{Security Notions}
 
+There are two sides to consider when it comes to the security
+of this scheme: the issuer, and the user.
+
+The issuer doesn't want users to be able to generate new tokens
+without its approval: the tokens should be \emph{unforgeable}.
+This is denoted as "One-More-Token" security. This notion
+can be modeled as a game, where an adversary runs the protocol,
+receiving $N$ tokens, and then attempts to forge an $(N+1)$th token.
+Naturally, an adversary should only succeed at this with negligeable
+probability.
+
+The user, on the other hand, doesn't want the issuer to link their
+tokens together. The essence here is that what the issuer sees
+in the redemption phase is independent from what they've seen
+in the issuance phase. This can also be modeled as a game, in which
+the user runs two signing phases with the adversary, and then
+redeems the tokens from one of the two signing phases, with
+the adversary then guessing which of the phases the tokens came from.
+An adversary should only guess correctly with negligeable probability.
+
 \section{Potential Problems}
-\section{Conclusion}
+
+\subsection{Monkey in the middle}
+
+A lazy adversary could intercept communication between a user and
+the issuer, in order to avoid solving puzzles themselves. They
+would receive a puzzle from the issuer, but then forward that puzzle
+to the user, pretending to be the adversary. Using the user's response,
+they would receive the tokens, instead of the user.
+
+\subsection{Accumulating Tokens}
+
+Since the tokens are unlinkable,
+and users are presumably anonymous to the issuer, a user can solve
+many puzzles, accumulating a lot of tokens. They can then redeem
+these tokens, or even share them with many bots, and conduct
+a denial-of-service attack on the whatever service uses the tokens
+to restrict spam.
+
+One of the mitigations suggested in the paper is to rotate the $k$
+value used in the OPRF, and thus the public key, which invalidates
+all tokens created with that $k$. Rotating keys often enough
+prevents tokens from being accumulated, to a certain extent.
+
+\subsection{Weakness in small numbers}
+
+Tokens can't be linked with each-other, which makes it difficult
+to distinguish users making use of the token protocol from eachother.
+Unfortunately, if few users are using the token protocol at all,
+there might be enough metadata to link them again. Malicious issuers
+might even aggravate the situation by intentionally only issuing
+a small number of tokens in total, or rotating the $k$ value excessively
+often.
+
+\subsection{Key Rotation}
+
+The paper briefly mentions rotating the $k$ value. This changes
+the public key $Y$. Because of this, users need to be aware of
+what public key(s) the issuer currently accepts. The paper briefly
+mentions having the issuer send the user a list of public keys they accept:
+this is a bit silly, because the issuer can then send each user
+a different list of public keys, making the tokens linkable. What the
+authors most likely meant was having the issuer publicly post
+their keys via some kind of PKI, which would ensure all users would
+be seeing the same result.
 
 \bibliographystyle{alpha}
 \footnotesize \bibliography{bib}
